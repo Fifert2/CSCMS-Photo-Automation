@@ -1,0 +1,17 @@
+.venv/
+.env
+__pycache__/
+*.pyc
+.DS_Store
+
+*.jpg
+*.jpeg
+*.png
+*.webp
+*.heic
+*.mp4
+*.mov
+
+local_test_data/
+local_outputs/
+logs/
