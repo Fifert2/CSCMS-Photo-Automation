@@ -1,125 +1,69 @@
-import base64
-import json
-from io import BytesIO
 from pathlib import Path
+from typing import Literal
 
-from openai import OpenAI
-from PIL import Image, ImageOps
+from ollama import Client
+from pydantic import BaseModel, Field
 
-from config import OPENAI_API_KEY, OPENAI_MODEL
-
-
-PHOTO_SELECTION_SCHEMA = {
-    "type": "object",
-    "properties": {
-        "score": {
-            "type": "integer",
-            "minimum": 1,
-            "maximum": 10
-        },
-        "selected_for_resize": {
-            "type": "boolean"
-        },
-        "best_platforms": {
-            "type": "array",
-            "items": {
-                "type": "string",
-                "enum": [
-                    "linkedin_landscape",
-                    "instagram_square",
-                    "vertical_story_tiktok",
-                    "youtube_thumbnail"
-                ]
-            }
-        },
-        "reason": {
-            "type": "string"
-        },
-        "possible_issues": {
-            "type": "string"
-        },
-        "caption_idea": {
-            "type": "string"
-        }
-    },
-    "required": [
-        "score",
-        "selected_for_resize",
-        "best_platforms",
-        "reason",
-        "possible_issues",
-        "caption_idea"
-    ],
-    "additionalProperties": False
-}
+from config import OLLAMA_HOST, OLLAMA_MODEL
 
 
-def _image_to_data_url(image_path: Path, max_side: int = 1200) -> str:
-    """
-    Creates a smaller JPEG copy of the image for AI review.
-    The original file is not changed.
-    """
-    image = Image.open(image_path)
-    image = ImageOps.exif_transpose(image).convert("RGB")
-    image.thumbnail((max_side, max_side))
+PlatformName = Literal[
+    "linkedin_landscape",
+    "instagram_square",
+    "vertical_story_tiktok",
+    "youtube_thumbnail",
+]
 
-    buffer = BytesIO()
-    image.save(buffer, format="JPEG", quality=85)
 
-    encoded = base64.b64encode(buffer.getvalue()).decode("utf-8")
-    return f"data:image/jpeg;base64,{encoded}"
+class PhotoSelection(BaseModel):
+    score: int = Field(ge=1, le=10)
+    selected_for_resize: bool
+    best_platforms: list[PlatformName]
+    reason: str
+    possible_issues: str
+    caption_idea: str
 
 
 def score_photo(image_path: Path) -> dict:
     """
-    Uses AI to review the photo and decide whether it should be resized.
-    AI only selects and explains. It does not edit the photo.
+    Uses the Ollama vision model on your homeserver to review the photo.
+    The model selects and explains. It does not edit the photo.
     """
-    if not OPENAI_API_KEY:
-        raise RuntimeError("OPENAI_API_KEY is missing from your .env file.")
 
-    client = OpenAI(api_key=OPENAI_API_KEY)
-    data_url = _image_to_data_url(image_path)
+    client = Client(host=OLLAMA_HOST)
 
     prompt = """
-You are reviewing conference and event photos for RPI CSCMS marketing.
+Review this event photo for RPI CSCMS social media.
 
-Decide whether this photo should be selected for social media resizing.
+Score it from 1 to 10.
 
-Evaluate:
-- sharpness and lighting
-- clear subject
-- professional appearance
-- marketing value for robotics, automation, manufacturing, artificial intelligence, students, RPI, or CSCMS
-- useful context such as booths, demos, students, robots, signs, or industry activity
-- whether the image would work well on LinkedIn, Instagram, vertical social formats, or YouTube thumbnails
+Select it if it is sharp, well-lit, professional, has a clear subject, and would be useful for robotics, automation, manufacturing, artificial intelligence, student, or conference marketing.
 
-Reject photos that are blurry, too dark, awkwardly framed, repetitive, low-value, or likely to look bad after cropping.
+Reject it if it is blurry, dark, awkwardly framed, repetitive, or likely to crop poorly.
 
 Do not identify people by name.
-Do not guess sensitive personal information.
-Return JSON only.
+
+Return only valid JSON with:
+score, selected_for_resize, best_platforms, reason, possible_issues, caption_idea.
 """
 
-    response = client.responses.create(
-        model=OPENAI_MODEL,
-        input=[
+    response = client.chat(
+        model=OLLAMA_MODEL,
+        messages=[
             {
                 "role": "user",
-                "content": [
-                    {"type": "input_text", "text": prompt},
-                    {"type": "input_image", "image_url": data_url},
-                ],
+                "content": prompt,
+                "images": [str(image_path.resolve())],
             }
         ],
-        text={
-            "format": {
-                "type": "json_schema",
-                "name": "photo_selection",
-                "schema": PHOTO_SELECTION_SCHEMA,
-                "strict": True,
-            }
+        format=PhotoSelection.model_json_schema(),
+        options={
+            "temperature": 0,
+            "num_ctx": 8192
         },
     )
 
-    return json.loads(response.output_text)
+    content = response["message"]["content"]
+    result = PhotoSelection.model_validate_json(content)
+
+    return result.model_dump()

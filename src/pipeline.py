@@ -3,6 +3,7 @@ import csv
 import shutil
 from datetime import datetime
 from pathlib import Path
+from typing import Optional
 
 from ai_selector import score_photo
 from config import (
@@ -17,7 +18,7 @@ from config import (
 from image_processor import process_photo
 
 
-def discover_images(folder: Path, limit: int | None = None) -> list[Path]:
+def discover_images(folder: Path, limit: Optional[int] = None) -> list:
     images = [
         path for path in folder.iterdir()
         if path.is_file()
@@ -59,7 +60,7 @@ def write_log(rows: list[dict]) -> Path:
     return latest_path
 
 
-def run_pipeline(dry_run: bool, limit: int | None = None, threshold: int = SELECTION_THRESHOLD) -> None:
+def run_pipeline(dry_run: bool, limit: Optional[int] = None, threshold: int = SELECTION_THRESHOLD) -> None:
     ensure_directories()
 
     if not dry_run:

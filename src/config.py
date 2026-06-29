@@ -19,8 +19,9 @@ LOGS = CSCMS_ROOT / "Logs"
 
 LOWER_THIRD_PATH = BRAND_ASSETS / "RPI-CSCMS-Automate-Lower-Third.png"
 
-OPENAI_API_KEY = os.getenv("OPENAI_API_KEY", "")
-OPENAI_MODEL = os.getenv("OPENAI_MODEL", "gpt-5.5")
+AI_PROVIDER = os.getenv("AI_PROVIDER", "ollama").lower()
+OLLAMA_HOST = os.getenv("OLLAMA_HOST", "http://localhost:11434")
+OLLAMA_MODEL = os.getenv("OLLAMA_MODEL", "qwen2.5vl:7b")
 SELECTION_THRESHOLD = int(os.getenv("SELECTION_THRESHOLD", "7"))
 
 IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
