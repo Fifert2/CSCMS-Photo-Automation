@@ -16,3 +16,4 @@ local_test_data/
 local_outputs/
 logs/
 .env
+.env
