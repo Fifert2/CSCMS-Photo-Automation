@@ -137,7 +137,7 @@ AI-assisted review is used where visual interpretation is required. File validat
 
 ### Configuration outside the processing code
 
-Platform dimensions and environment-specific settings are stored separately, making the workflow easier to update without rewriting the image-processing logic.
+Platform dimensions and environment-specific settings are stored separately, making the workflow easier to update without rewriting the image-processing logic..
 
 ### Original media protection
 
