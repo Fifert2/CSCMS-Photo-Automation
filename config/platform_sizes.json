@@ -1,0 +1,18 @@
+{
+  "linkedin_landscape": {
+    "width": 1200,
+    "height": 675
+  },
+  "instagram_square": {
+    "width": 1080,
+    "height": 1080
+  },
+  "vertical_story_tiktok": {
+    "width": 1080,
+    "height": 1920
+  },
+  "youtube_thumbnail": {
+    "width": 1280,
+    "height": 720
+  }
+}
